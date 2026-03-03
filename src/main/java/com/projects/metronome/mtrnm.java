@@ -24,7 +24,7 @@ public class mtrnm {
     }
 
     private void setVisBeats(int beat) {
-        vis.setBeats(beat);
+        vis.setParameters(beat,vis.getVisSize(), vis.getDistance());
     }
 
     public void setTempo(int tmp) {
