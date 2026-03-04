@@ -6,18 +6,21 @@ import java.util.List;
 
 
 public class Visualiser {
-    private size visSize = size.MEDIUM;
-    private int distance = 3;
+    private static Visualiser instance;
+    private size visSize;
+    private int distance;
     private int beats;
-    private List<String> arts = new ArrayList<>();
+    private final List<String> arts = new ArrayList<>();
 
-    public Visualiser(int beats){
-        this.setBeats(beats);
-        createArts();
-//        doVisual(3000);
+    public static Visualiser getInstance(int beats, size sz, int distance) {
+        if (instance == null) {
+            instance = new Visualiser(beats, sz, distance);
+        }
+        instance.setParameters(beats,sz,distance);
+        return instance;
     }
 
-    public Visualiser(int beats, size sz, int distance){
+    private Visualiser(int beats, size sz, int distance){
         this.setParameters(beats,sz,distance);
     }
 
@@ -51,6 +54,13 @@ public class Visualiser {
         this.beats = beats;
     }
 
+    public List<String> getArts() {
+        if (this.arts.isEmpty()) {
+            return null;
+        }
+        return arts;
+    }
+
     public void setParameters(int beats, size sz, int distance) {
         this.setBeats(beats);
         this.setVisSize(sz);
@@ -58,7 +68,7 @@ public class Visualiser {
         this.createArts();
     }
 
-    private void eraseVisualResetCursor() {
+    public void eraseVisualResetCursor() {
         System.out.print("\r");
         int line = this.getVisSize().getS();
         while (line > 0) {
@@ -109,27 +119,28 @@ public class Visualiser {
     private static int paddingSize(size s) {
         return activeBeatArt(s).indexOf('\n') - idleBeatArt(s).indexOf('\n');
     }
+// TO BE REMOVED
 
-    public static void showThem() {
-        Integer[] ar = {1,3,4,6};
-        for (int i : ar) {
-            String ac = activeBeatArt(i);
-            System.out.println(ac);
-            String[] a = ac.split("\n");
-            System.out.println(Arrays.toString(a));
-            for (String kj : a) {
-                System.out.println(kj.length());
-            }
-            String ic = idleBeatArt(i);
-            System.out.println(ic);
-            String[] ib = ic.split("\n");
-            System.out.println(Arrays.toString(ib));
-            for (String ij : ib) {
-                System.out.println(ij.length());
-            }
-
-        }
-    }
+//    public static void showThem() {
+//        Integer[] ar = {1,3,4,6};
+//        for (int i : ar) {
+//            String ac = activeBeatArt(i);
+//            System.out.println(ac);
+//            String[] a = ac.split("\n");
+//            System.out.println(Arrays.toString(a));
+//            for (String kj : a) {
+//                System.out.println(kj.length());
+//            }
+//            String ic = idleBeatArt(i);
+//            System.out.println(ic);
+//            String[] ib = ic.split("\n");
+//            System.out.println(Arrays.toString(ib));
+//            for (String ij : ib) {
+//                System.out.println(ij.length());
+//            }
+//
+//        }
+//    }
 
     // arts get created only once, until attributes are to be changed
     private void createArts() {
@@ -155,17 +166,28 @@ public class Visualiser {
                 }
                 String[] connections = Visualiser.beatConnection(sz).split("\n");
                 for (int k = 0; k < beatLines.length; k++) {
+                    // active beat not on first position doesn't need have a connector that needs to be padded
+                    // the other ones require "padding" which is basically removing a part of a connector
                     if (padding && j != 0) {
                         art[k].delete(art[k].length()-padOneSide,art[k].length());
                     }
+                    // but non-active beats on first position require initial whitespace padding
+                    if (!padding && j == 0) {
+                        art[k].append(" ".repeat(padOneSide));
+                    }
+                    // adding connection on the left side of the beat (the first one shouldn't have it)
                     if (j != 0) {
                         art[k].append(connections[k].repeat(dist/2));
                     }
+
+                    // this appends the actual beat
                     art[k].append(beatLines[k]);
 
+                    // adding connection on the right side of the beat (the last one doesn't have it)
                     if (j != beats - 1) {
                         art[k].append(connections[k].repeat(dist/2));
                     }
+                    // adding the right side of the "padding"
                     if (padding && j != beats - 1) {
                         art[k].delete(art[k].length()-padOneSide,art[k].length());
                     }
@@ -182,15 +204,12 @@ public class Visualiser {
 
 
     public void printVisual(int activeBeat) {
-        arts.forEach(System.out::println);
+        var visArts = this.getArts();
+        if (visArts == null) {
+            return;
+        }
+        String arts = visArts.get(activeBeat - 1);
+        System.out.print(arts);
     }
 
-    private void doVisual(int time) throws InterruptedException{
-        while (true) {
-            printVisual(4);
-            Thread.sleep(time);
-            eraseVisualResetCursor();
-            Thread.sleep(time);
-        }
-    }
 }

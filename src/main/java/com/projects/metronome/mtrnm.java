@@ -1,19 +1,21 @@
 package com.projects.metronome;
 
-public class mtrnm {
-    private static final int maxTempo = 300, minTempo = 40, maxBeats = 16;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Scanner;
+import java.util.concurrent.*;
+import java.util.logging.Logger;
+
+
+public class mtrnm implements Runnable{
+    private final int maxTempo = 300, minTempo = 40, maxBeats = 16;
     private int tempo, currentBeat = 0, beatCount = 4;
-    private boolean isRunning = false;
-    private static Visualiser vis;
+    private boolean running = false;
+    private final Visualiser vis = Visualiser.getInstance(beatCount,size.MEDIUM,3);
 
-    static {
-        try {
-            vis = new Visualiser(4);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
+    
+    private static final String helpUsage = "Usage: mtrnm <tempo> [-b <number_of_beats>] [-s <size_of_visual>] [-d <visual_distance_between_beats>]";
+    private static final String help = "Type: \n\tt - to set tempo in BPM \n\tb - to set the number of beats \n\ts - to set the size of the display\n\td - to set the visual beat distance \n\tm - to enable the muted beats mode";
     public mtrnm(int tmp) {
         setTempo(tmp);
     }
@@ -23,8 +25,42 @@ public class mtrnm {
         setBeatCount(beatCnt);
     }
 
+    public static void main(String[] args) {
+        int tempo;
+        if (args.length == 0) {
+            System.out.println("No positional agrument <tempo> was given. It needs to be set now");
+            System.out.println(helpUsage);
+            System.out.println();
+            System.out.println(help.substring(help.indexOf('\n')));
+            
+        }
+        else {
+            List<String> argList = List.of(args);
+            try {
+                tempo = Integer.parseInt(argList.getFirst());
+                
+            } catch (NumberFormatException ex) {
+                System.out.println("Input the correct ");
+            }
+            if (argList.size() > 1) {
+                
+            }
+        }
+        
+        mtrnm metro = new mtrnm(tempo);
+        System.out.println(metro.getTempo());
+        metro.run();
+
+        Scanner scan = new Scanner(System.in);
+        scan.nextLine();
+        metro.stopRunning();
+    }
     private void setVisBeats(int beat) {
         vis.setParameters(beat,vis.getVisSize(), vis.getDistance());
+    }
+
+    private Visualiser getVis() {
+        return this.vis;
     }
 
     public void setTempo(int tmp) {
@@ -69,11 +105,28 @@ public class mtrnm {
     }
 
     public boolean isRunning() {
-        return isRunning;
+        return running;
     }
 
     public void setRunning(boolean running) {
-        isRunning = running;
+        this.running = running;
+    }
+    
+    public int inputSettings() {
+        Scanner scan = new Scanner(System.in);
+        String token = scan.next();
+        token = token.toLowerCase();
+        if (token.equals("t")) {
+            
+        } else if (token.equals("b")) {
+            
+        } else if (token.equals("s")) {
+            
+        } else if (token.equals("d")) {
+            
+        } else if (token.equals("m")) {
+            
+        }
     }
 
     public int getNextBeat() {
@@ -84,4 +137,42 @@ public class mtrnm {
         return this.getCurrentBeat();
     }
 
+    public void printVis(int beat) {
+        this.getVis().printVisual(beat);
+    }
+
+    public void clearVis() {
+        if (currentBeat == 0) {
+            return;
+        }
+        this.getVis().eraseVisualResetCursor();
+    }
+
+    public void run() {
+        if (isRunning()) {
+            return;
+        }
+        int oscill = 60000 / this.getTempo();
+        System.out.println(oscill);
+        setRunning(true);
+        ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+        scheduler.scheduleAtFixedRate(()->{
+            if (!isRunning()) {
+                scheduler.shutdown();
+                scheduler.close();
+                return;
+            }
+            clearVis();
+            printVis(this.getNextBeat());},0,oscill,TimeUnit.MILLISECONDS);
+            System.lo
+    }
+
+
+
+    public void stopRunning() {
+        if (!isRunning()) {
+            return;
+        }
+        setRunning(false);
+    }
 }
