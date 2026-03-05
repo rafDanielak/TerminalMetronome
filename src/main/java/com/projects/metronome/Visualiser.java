@@ -46,7 +46,7 @@ public class Visualiser {
         this.distance = distance;
     }
 
-    private int getBeats() {
+    int getBeats() {
         return this.beats;
     }
 

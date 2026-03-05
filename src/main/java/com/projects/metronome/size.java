@@ -15,4 +15,14 @@ public enum size {
     public int getS() {
         return s;
     }
+
+    public static size getSizeFromString(String s) {
+        s = s.toUpperCase().strip();
+        for (size sz : size.values()) {
+            if (s.equals(sz.toString())) {
+                return sz;
+            }
+        }
+        return null;
+    }
 }

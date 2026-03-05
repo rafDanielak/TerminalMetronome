@@ -1,10 +1,9 @@
 package com.projects.metronome;
 
-import java.util.Arrays;
+import java.util.InputMismatchException;
 import java.util.List;
 import java.util.Scanner;
 import java.util.concurrent.*;
-import java.util.logging.Logger;
 
 
 public class mtrnm implements Runnable{
@@ -55,41 +54,54 @@ public class mtrnm implements Runnable{
         scan.nextLine();
         metro.stopRunning();
     }
-    private void setVisBeats(int beat) {
-        vis.setParameters(beat,vis.getVisSize(), vis.getDistance());
+
+    private void setVisParameters(int beat, size sz, int distance) {
+        vis.setParameters(beat, sz, distance);
     }
+
+    private void setBeat(int beat) {
+        setVisParameters(beat, this.getVis().getVisSize(), this.getVis().getDistance());
+    }
+
+    private void setSize(size sz) {
+        setVisParameters(this.getVis().getBeats(),sz,this.getVis().getDistance());
+    }
+
+    private void setDistance(int dist) {
+        setVisParameters(this.getVis().getBeats(),this.getVis().getVisSize(), dist);
+    }
+
+
 
     private Visualiser getVis() {
         return this.vis;
     }
 
-    public void setTempo(int tmp) {
+    public int setTempo(int tmp) {
         if (tmp < minTempo) {
-            this.tempo = -2;
+            return -2;
         }
         else if (tmp > maxTempo) {
-            this.tempo = -1;
+            return -1;
         }
-        else {
-            this.tempo = tmp;
-        }
+        this.tempo = tmp;
+        return 0;
     }
 
     public int getTempo() {
         return this.tempo;
     }
 
-    public void setBeatCount(int beat) {
+    public int setBeatCount(int beat) {
         if (beat < 2) {
-            this.beatCount = -2;
+            return -2;
         }
         else if (beat > maxBeats) {
-            this.beatCount = -1;
+            return -1;
         }
-        else {
-            this.beatCount = beat;
-            this.setVisBeats(beat);
-        }
+        this.beatCount = beat;
+        this.setBeat(beat);
+        return 0;
     }
 
     public int getBeatCount() {
@@ -113,19 +125,76 @@ public class mtrnm implements Runnable{
     }
     
     public int inputSettings() {
+        if (isRunning()) {
+            return -1;
+        }
         Scanner scan = new Scanner(System.in);
         String token = scan.next();
         token = token.toLowerCase();
-        if (token.equals("t")) {
-            
-        } else if (token.equals("b")) {
-            
-        } else if (token.equals("s")) {
-            
-        } else if (token.equals("d")) {
-            
-        } else if (token.equals("m")) {
-            
+        switch (token) {
+            case "t" -> {
+                System.out.printf("Write the desired tempo in BPM (must be between %d and %d)\n", minTempo, maxTempo);
+                Integer tm = null;
+                while (tm == null) {
+                    try {
+                        tm = scan.nextInt();
+                        if (this.setTempo(tm) != 0) {
+                            tm = null;
+                            throw new InputMismatchException();
+                        }
+                    } catch (InputMismatchException e) {
+                        System.out.println("try again");
+                    }
+                }
+                System.out.printf("The tempo is now %d\n",this.getTempo());
+            }
+            case "b" -> {
+                System.out.printf("Write the wanted number of beats (smaller than %d)",maxBeats);
+                Integer bt = null;
+                while (bt == null) {
+                    try {
+                        bt = scan.nextInt();
+                        if (this.setBeatCount(bt) != 0) {
+                            bt = null;
+                            throw new InputMismatchException();
+                        }
+                    } catch (InputMismatchException e) {
+                        System.out.println("try again");
+                    }
+                }
+                System.out.printf("The number of beats is now %d\n",this.getBeatCount());
+            }
+            case "s" -> {
+                System.out.println("Possible sizes: TINY, SMALL, MEDIUM, BIG");
+                System.out.printf("Write the desired size (current size is %s)\n",this.getVis().getVisSize().name());
+                size sz = null;
+                while (sz == null) {
+                    String s = scan.nextLine();
+                    sz = size.getSizeFromString(s);
+                    if (sz == null) {
+                        System.out.println("try again");
+                    }
+                }
+                this.setSize(sz);
+                System.out.printf("Size is now %s",this.getVis().getVisSize().name());
+            }
+            case "d" -> {
+                System.out.printf("Write the desired distance (current distance is %d)",this.getVis().getDistance());
+                Integer dist = null;
+                while (dist == null) {
+                    try {
+                        dist = scan.nextInt();
+                        this.setDistance(dist);
+                    } catch (InputMismatchException ex) {
+                        System.out.println("try again");
+                    }
+                }
+                System.out.printf("The distance is now %d",this.getVis().getDistance());
+            }
+            case "m" -> {
+            }
+            default -> {
+            }
         }
     }
 
