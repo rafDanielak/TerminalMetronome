@@ -1,9 +1,15 @@
 package com.projects.metronome;
 
+import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.InputMismatchException;
-import java.util.List;
 import java.util.Scanner;
 import java.util.concurrent.*;
+import javax.sound.sampled.*;
 
 
 public class mtrnm implements Runnable{
@@ -12,9 +18,26 @@ public class mtrnm implements Runnable{
     private boolean running = false;
     private final Visualiser vis = Visualiser.getInstance(beatCount,size.MEDIUM,3);
 
-    
+    private static final AudioInputStream audioRegular, audioAccent;
+
+    static {
+        try {
+
+            audioRegular = AudioSystem.getAudioInputStream(new File("src/main/resources/ding.wav"));
+            audioAccent = AudioSystem.getAudioInputStream(new File("src/main/resources/chord.wav"));
+            audioRegular.mark(audioRegular.available());
+            audioAccent.mark(audioAccent.available());
+        } catch (UnsupportedAudioFileException | IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     private static final String helpUsage = "Usage: mtrnm <tempo> [-b <number_of_beats>] [-s <size_of_visual>] [-d <visual_distance_between_beats>]";
-    private static final String help = "Type: \n\tt - to set tempo in BPM \n\tb - to set the number of beats \n\ts - to set the size of the display\n\td - to set the visual beat distance \n\tm - to enable the muted beats mode";
+    private static final String helpSettings = "Type: \n\tt - to set tempo in BPM \n\tb - to set the number of beats \n\ts - to set the size of the display\n\td - to set the visual beat distance \n\tm - to enable the muted beats mode";
+    private static final String helpRun = "Type anything to pause/resume, type s to enable settings, type e to exit";
+
+    public mtrnm() {}
+
     public mtrnm(int tmp) {
         setTempo(tmp);
     }
@@ -24,35 +47,49 @@ public class mtrnm implements Runnable{
         setBeatCount(beatCnt);
     }
 
-    public static void main(String[] args) {
-        int tempo;
+    public static void main(String[] args) throws LineUnavailableException, IOException {
+        SoundPlayer.playClip(audioAccent,true);
+        SoundPlayer.playClip(audioRegular,true);
+        mtrnm metro;
         if (args.length == 0) {
             System.out.println("No positional agrument <tempo> was given. It needs to be set now");
             System.out.println(helpUsage);
             System.out.println();
-            System.out.println(help.substring(help.indexOf('\n')));
-            
+            metro = new mtrnm();
+            do {
+                metro.inputSettings();
+            } while (metro.getTempo() == 0);
         }
         else {
-            List<String> argList = List.of(args);
-            try {
-                tempo = Integer.parseInt(argList.getFirst());
-                
-            } catch (NumberFormatException ex) {
-                System.out.println("Input the correct ");
-            }
-            if (argList.size() > 1) {
-                
-            }
+            System.out.println("running with arguments not implemented yet");
+            return;
+//            List<String> argList = List.of(args);
+//            try {
+//                tempo = Integer.parseInt(argList.getFirst());
+//
+//            } catch (NumberFormatException ex) {
+//                System.out.println("Input the correct ");
+//            }
+//            if (argList.size() > 1) {
+//
+//            }
         }
-        
-        mtrnm metro = new mtrnm(tempo);
-        System.out.println(metro.getTempo());
-        metro.run();
 
-        Scanner scan = new Scanner(System.in);
-        scan.nextLine();
-        metro.stopRunning();
+        System.out.println(helpRun);
+
+        while (true) {
+            metro.run();
+            Scanner scan = new Scanner(System.in);
+            String line = scan.nextLine();
+            metro.stopRunning();
+            if (line.equals("s")) {
+                metro.inputSettings();
+            } else if (line.equals("e")) {
+                System.out.println("Goodbye");
+                return;
+            }
+            scan.nextLine();
+        }
     }
 
     private void setVisParameters(int beat, size sz, int distance) {
@@ -124,10 +161,11 @@ public class mtrnm implements Runnable{
         this.running = running;
     }
     
-    public int inputSettings() {
+    public void inputSettings() {
         if (isRunning()) {
-            return -1;
+            return;
         }
+        System.out.println(helpSettings);
         Scanner scan = new Scanner(System.in);
         String token = scan.next();
         token = token.toLowerCase();
@@ -143,13 +181,14 @@ public class mtrnm implements Runnable{
                             throw new InputMismatchException();
                         }
                     } catch (InputMismatchException e) {
-                        System.out.println("try again");
+                        scan.next();
+                        System.out.println("Try again");
                     }
                 }
                 System.out.printf("The tempo is now %d\n",this.getTempo());
             }
             case "b" -> {
-                System.out.printf("Write the wanted number of beats (smaller than %d)",maxBeats);
+                System.out.printf("Write the wanted number of beats (smaller than %d)\n",maxBeats);
                 Integer bt = null;
                 while (bt == null) {
                     try {
@@ -159,6 +198,7 @@ public class mtrnm implements Runnable{
                             throw new InputMismatchException();
                         }
                     } catch (InputMismatchException e) {
+                        scan.next();
                         System.out.println("try again");
                     }
                 }
@@ -176,10 +216,10 @@ public class mtrnm implements Runnable{
                     }
                 }
                 this.setSize(sz);
-                System.out.printf("Size is now %s",this.getVis().getVisSize().name());
+                System.out.printf("Size is now %s\n",this.getVis().getVisSize().name());
             }
             case "d" -> {
-                System.out.printf("Write the desired distance (current distance is %d)",this.getVis().getDistance());
+                System.out.printf("Write the desired distance (current distance is %d)\n",this.getVis().getDistance());
                 Integer dist = null;
                 while (dist == null) {
                     try {
@@ -189,11 +229,13 @@ public class mtrnm implements Runnable{
                         System.out.println("try again");
                     }
                 }
-                System.out.printf("The distance is now %d",this.getVis().getDistance());
+                System.out.printf("The distance is now %d\n",this.getVis().getDistance());
             }
             case "m" -> {
+                System.out.println("muted beats not implemented yet");
             }
             default -> {
+                System.out.println("Unknown option");
             }
         }
     }
@@ -222,18 +264,22 @@ public class mtrnm implements Runnable{
             return;
         }
         int oscill = 60000 / this.getTempo();
-        System.out.println(oscill);
         setRunning(true);
-        ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+        ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(5);
         scheduler.scheduleAtFixedRate(()->{
             if (!isRunning()) {
                 scheduler.shutdown();
                 scheduler.close();
                 return;
             }
+            int beat = this.getNextBeat();
             clearVis();
-            printVis(this.getNextBeat());},0,oscill,TimeUnit.MILLISECONDS);
-            System.lo
+            if (beat == 1) {
+                SoundPlayer.playClip(audioAccent,false);
+            } else {
+                SoundPlayer.playClip(audioRegular,false);
+            }
+            printVis(beat);},0,oscill,TimeUnit.MILLISECONDS);
     }
 
 
